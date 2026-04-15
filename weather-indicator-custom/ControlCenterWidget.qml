@@ -16,6 +16,8 @@ NIconButtonHot {
     property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
 
     readonly property string tooltipOption: cfg.tooltipOption ?? defaults.tooltipOption ?? "everything"
+    readonly property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit ?? true
+    readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? "both"
     readonly property string iconText: weatherReady ? LocationService.weatherSymbolFromCode(LocationService.data.weather.current_weather.weathercode, LocationService.data.weather.current_weather.is_day) : "weather-cloud-off"
     icon: iconText
 
@@ -51,12 +53,24 @@ NIconButtonHot {
         }
     }
 
+    function formatTemperature(tempC) {
+        if (temperatureMode === "fahrenheit") {
+            var tempF = LocationService.celsiusToFahrenheit(tempC);
+            return `${Math.round(tempF)}${showTempUnit ? "°F" : ""}`;
+        }
+
+        if (temperatureMode === "both") {
+            var tempF = LocationService.celsiusToFahrenheit(tempC);
+            return `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`;
+        }
+
+        return `${Math.round(tempC)}${showTempUnit ? "°C" : ""}`;
+    }
+
     function buildCurrentTemp() {
         let rows = [];
         var tempC = LocationService.data.weather.current_weather.temperature;
-        var tempF = LocationService.celsiusToFahrenheit(tempC);
-
-        rows.push([("Current"), `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`]);
+        rows.push([("Current"), formatTemperature(tempC)]);
         return rows;
     }
 
@@ -64,16 +78,21 @@ NIconButtonHot {
         let rows = [];
         var max = LocationService.data.weather.daily.temperature_2m_max[0]
         var min = LocationService.data.weather.daily.temperature_2m_min[0]
-        var suffix = "°C";
 
-        if (Settings.data.location.useFahrenheit) {
+        if (temperatureMode === "fahrenheit") {
             max = LocationService.celsiusToFahrenheit(max)
             min = LocationService.celsiusToFahrenheit(min)
-            suffix = "°F";
+            rows.push([("High"), `${Math.round(max)}${showTempUnit ? "°F" : ""}`]);
+            rows.push([("Low"), `${Math.round(min)}${showTempUnit ? "°F" : ""}`]);
+        } else if (temperatureMode === "both") {
+            var maxF = LocationService.celsiusToFahrenheit(max)
+            var minF = LocationService.celsiusToFahrenheit(min)
+            rows.push([("High"), `${Math.round(max)}°C / ${Math.round(maxF)}°F`]);
+            rows.push([("Low"), `${Math.round(min)}°C / ${Math.round(minF)}°F`]);
+        } else {
+            rows.push([("High"), `${Math.round(max)}${showTempUnit ? "°C" : ""}`]);
+            rows.push([("Low"), `${Math.round(min)}${showTempUnit ? "°C" : ""}`]);
         }
-
-        rows.push([("High"), `${Math.round(max)}${suffix}`]);
-        rows.push([("Low"), `${Math.round(min)}${suffix}`]);
 
         return rows;
     }

@@ -29,7 +29,40 @@ Item {
   readonly property bool showTempValue: cfg.showTempValue ?? defaults.showTempValue ?? false
   readonly property bool showConditionIcon: cfg.showConditionIcon ?? defaults.customColor ?? false
   readonly property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit ?? false
+  readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? "both"
   readonly property string tooltipOption: cfg.tooltipOption ?? defaults.tooltipOption ?? "everything"
+
+  function formatTemperature(tempC) {
+    var mode = root.temperatureMode;
+    if (mode === "fahrenheit") {
+      var tempF = LocationService.celsiusToFahrenheit(tempC);
+      return `${Math.round(tempF)}${root.showTempUnit ? "°F" : ""}`;
+    }
+
+    if (mode === "both") {
+      var tempF = LocationService.celsiusToFahrenheit(tempC);
+      return `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`;
+    }
+
+    return `${Math.round(tempC)}${root.showTempUnit ? "°C" : ""}`;
+  }
+
+  function formatHiLow(max, min) {
+    var mode = root.temperatureMode;
+    if (mode === "fahrenheit") {
+      max = LocationService.celsiusToFahrenheit(max);
+      min = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(max)}°F / ${Math.round(min)}°F`;
+    }
+
+    if (mode === "both") {
+      var maxF = LocationService.celsiusToFahrenheit(max);
+      var minF = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(max)}°C / ${Math.round(min)}°C / ${Math.round(maxF)}°F / ${Math.round(minF)}°F`;
+    }
+
+    return `${Math.round(max)}°C / ${Math.round(min)}°C`;
+  }
 
   // Bar positioning properties
   readonly property string screenName: screen ? screen.name : ""
@@ -162,9 +195,7 @@ MouseArea {
 function buildCurrentTemp() {
     let rows = [];
     var tempC = LocationService.data.weather.current_weather.temperature;
-    var tempF = LocationService.celsiusToFahrenheit(tempC);
-
-    rows.push([("Current"), `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`]);
+    rows.push([("Current"), root.formatTemperature(tempC)]);
     return rows;
 }
 
@@ -172,16 +203,22 @@ function buildHiLowTemps() {
     let rows = [];
     var max = LocationService.data.weather.daily.temperature_2m_max[0]
     var min = LocationService.data.weather.daily.temperature_2m_min[0]
-    var suffix = "°C";
+    var mode = root.temperatureMode;
 
-    if (Settings.data.location.useFahrenheit) {
+    if (mode === "fahrenheit") {
         max = LocationService.celsiusToFahrenheit(max)
         min = LocationService.celsiusToFahrenheit(min)
-        suffix = "°F";
+        rows.push([("High"), `${Math.round(max)}${root.showTempUnit ? "°F" : ""}`]);
+        rows.push([("Low"), `${Math.round(min)}${root.showTempUnit ? "°F" : ""}`]);
+    } else if (mode === "both") {
+        var maxF = LocationService.celsiusToFahrenheit(max)
+        var minF = LocationService.celsiusToFahrenheit(min)
+        rows.push([("High"), `${Math.round(max)}°C / ${Math.round(maxF)}°F`]);
+        rows.push([("Low"), `${Math.round(min)}°C / ${Math.round(minF)}°F`]);
+    } else {
+        rows.push([("High"), `${Math.round(max)}${root.showTempUnit ? "°C" : ""}`]);
+        rows.push([("Low"), `${Math.round(min)}${root.showTempUnit ? "°C" : ""}`]);
     }
-
-    rows.push([("High"), `${Math.round(max)}${suffix}`]);
-    rows.push([("Low"), `${Math.round(min)}${suffix}`]);
 
     return rows;
 }

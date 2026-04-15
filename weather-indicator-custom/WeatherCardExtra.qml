@@ -12,6 +12,12 @@ NBox {
   //readonly property real contentPreferredWidth: 675
   //readonly property real contentPreferredHeight: content.implicitHeight + (Style.marginL * 2)
 
+  property var pluginApi: null
+  property var cfg: pluginApi?.pluginSettings || ({})
+  property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
+  readonly property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit ?? true
+  readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? "both"
+
   property int forecastDays: 7
   property bool showLocation: true
   property bool showEffects: Settings.data.location.weatherShowEffects
@@ -29,6 +35,42 @@ NBox {
   readonly property bool isFoggy: testEffects === "fog" || (testEffects === "" && (currentWeatherCode >= 40 && currentWeatherCode <= 49))
   readonly property bool isClearDay: testEffects === "clear_day" || (testEffects === "" && (currentWeatherCode === 0 && isDayTime))
   readonly property bool isClearNight: testEffects === "clear_night" || (testEffects === "" && (currentWeatherCode === 0 && !isDayTime))
+
+  function formatTemperature(tempC) {
+    if (temperatureMode === "fahrenheit") {
+      var tempF = LocationService.celsiusToFahrenheit(tempC);
+      return `${Math.round(tempF)}${showTempUnit ? "°F" : ""}`;
+    }
+    if (temperatureMode === "both") {
+      var tempF = LocationService.celsiusToFahrenheit(tempC);
+      return `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`;
+    }
+    return `${Math.round(tempC)}${showTempUnit ? "°C" : ""}`;
+  }
+
+  function formatForecastHigh(max) {
+    if (temperatureMode === "fahrenheit") {
+      max = LocationService.celsiusToFahrenheit(max);
+      return `${Math.round(max)}${showTempUnit ? "°F" : ""}`;
+    }
+    if (temperatureMode === "both") {
+      var maxF = LocationService.celsiusToFahrenheit(max);
+      return `${Math.round(max)}${showTempUnit ? "°C" : ""} / ${Math.round(maxF)}${showTempUnit ? "°F" : ""}`;
+    }
+    return `${Math.round(max)}${showTempUnit ? "°C" : ""}`;
+  }
+
+  function formatForecastLow(min) {
+    if (temperatureMode === "fahrenheit") {
+      min = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(min)}${showTempUnit ? "°F" : ""}`;
+    }
+    if (temperatureMode === "both") {
+      var minF = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(min)}${showTempUnit ? "°C" : ""} / ${Math.round(minF)}${showTempUnit ? "°F" : ""}`;
+    }
+    return `${Math.round(min)}${showTempUnit ? "°C" : ""}`;
+  }
 
   visible: Settings.data.location.weatherEnabled
   implicitHeight: Math.max(100 * Style.uiScaleRatio, content.implicitHeight + (Style.marginXL * 2))
@@ -137,8 +179,7 @@ NBox {
                   return "";
                 }
                 var tempC = LocationService.data.weather.current_weather.temperature;
-                var tempF = LocationService.celsiusToFahrenheit(tempC);
-                return `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`;
+                return root.formatTemperature(tempC);
               }
               pointSize: showLocation ? Style.fontSizeXL : Style.fontSizeXL * 1.6
               font.weight: Style.fontWeightBold
@@ -192,14 +233,16 @@ NBox {
             Layout.alignment: Qt.AlignHCenter
             text: {
               var max = LocationService.data.weather.daily.temperature_2m_max[index];
+              return root.formatForecastHigh(max);
+            }
+            pointSize: Style.fontSizeXS
+            color: Color.mOnSurfaceVariant
+          }
+          NText {
+            Layout.alignment: Qt.AlignHCenter
+            text: {
               var min = LocationService.data.weather.daily.temperature_2m_min[index];
-              if (Settings.data.location.useFahrenheit) {
-                max = LocationService.celsiusToFahrenheit(max);
-                min = LocationService.celsiusToFahrenheit(min);
-              }
-              max = Math.round(max);
-              min = Math.round(min);
-              return `${max}°/${min}°`;
+              return root.formatForecastLow(min);
             }
             pointSize: Style.fontSizeXS
             color: Color.mOnSurfaceVariant

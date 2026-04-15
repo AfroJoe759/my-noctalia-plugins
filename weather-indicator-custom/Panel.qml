@@ -8,6 +8,7 @@ import qs.Modules.Cards
 
 Item {
   id: root
+  property var pluginApi: null
 
   // SmartPanel
   readonly property var geometryPlaceholder: panelContainer
@@ -45,6 +46,7 @@ Item {
                 Layout.fillWidth: true
                 forecastDays: 7
                 showLocation: false
+                pluginApi: root.pluginApi
             }
         }
     }

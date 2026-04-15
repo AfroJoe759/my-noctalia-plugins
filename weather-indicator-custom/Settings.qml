@@ -15,6 +15,7 @@ ColumnLayout {
   property bool showTempValue: cfg.showTempValue ?? defaults.showTempValue
   property bool showConditionIcon: cfg.showConditionIcon ?? defaults.showConditionIcon
   property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit
+  property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode
   property string tooltipOption: cfg.tooltipOption ?? defaults.tooltipOption
   property string customColor: cfg.customColor ?? defaults.customColor
   spacing: Style.marginL
@@ -70,6 +71,22 @@ ColumnLayout {
 
   NComboBox {
     Layout.fillWidth: true
+    label: pluginApi?.tr("settings.temperatureMode.label") || "Temperature Mode"
+    description: pluginApi?.tr("settings.temperatureMode.desc") || "Choose whether to show Celsius, Fahrenheit, or both."
+    model: [
+      { "key": "celsius", "name": pluginApi?.tr("settings.mode.celsius") || "Celsius" },
+      { "key": "fahrenheit", "name": pluginApi?.tr("settings.mode.fahrenheit") || "Fahrenheit" },
+      { "key": "both", "name": pluginApi?.tr("settings.mode.both") || "Both" }
+    ]
+    currentKey: root.temperatureMode
+    onSelected: function (key) {
+      root.temperatureMode = key;
+    }
+    defaultValue: "both"
+  }
+
+  NComboBox {
+    Layout.fillWidth: true
     label: pluginApi?.tr("settings.tooltipOption.label") || "Tooltip options"
     description: pluginApi?.tr("settings.tooltipOption.desc") || "Choose what you would like the tooltip to display."
     model: [
@@ -106,6 +123,7 @@ ColumnLayout {
     pluginApi.pluginSettings.showTempValue = root.showTempValue;
     pluginApi.pluginSettings.showConditionIcon = root.showConditionIcon;
     pluginApi.pluginSettings.showTempUnit = root.showTempUnit;
+    pluginApi.pluginSettings.temperatureMode = root.temperatureMode;
     pluginApi.pluginSettings.tooltipOption = root.tooltipOption;
     pluginApi.pluginSettings.customColor = root.customColor;
     pluginApi.saveSettings();
