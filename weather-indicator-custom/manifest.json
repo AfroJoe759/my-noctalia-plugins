@@ -24,8 +24,8 @@
       "showTempValue": true,
       "showTempUnit": true,
       "showConditionIcon": true,
-      "tooltipOption": "everything",
       "temperatureMode": "both",
+      "tooltipOption": "everything",
       "customColor": "none"
     }
   }

@@ -15,9 +15,9 @@ NIconButtonHot {
     property var cfg: pluginApi?.pluginSettings || ({})
     property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
 
-    readonly property string tooltipOption: cfg.tooltipOption ?? defaults.tooltipOption ?? "everything"
     readonly property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit ?? true
     readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? "both"
+    readonly property string tooltipOption: cfg.tooltipOption ?? defaults.tooltipOption ?? "everything"
     readonly property string iconText: weatherReady ? LocationService.weatherSymbolFromCode(LocationService.data.weather.current_weather.weathercode, LocationService.data.weather.current_weather.is_day) : "weather-cloud-off"
     icon: iconText
 
@@ -58,12 +58,10 @@ NIconButtonHot {
             var tempF = LocationService.celsiusToFahrenheit(tempC);
             return `${Math.round(tempF)}${showTempUnit ? "°F" : ""}`;
         }
-
         if (temperatureMode === "both") {
             var tempF = LocationService.celsiusToFahrenheit(tempC);
             return `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`;
         }
-
         return `${Math.round(tempC)}${showTempUnit ? "°C" : ""}`;
     }
 

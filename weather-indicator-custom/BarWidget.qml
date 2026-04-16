@@ -121,8 +121,7 @@ Item {
               return "";
             }
             var tempC = LocationService.data.weather.current_weather.temperature;
-            var tempF = LocationService.celsiusToFahrenheit(tempC);
-            return `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`;
+            return root.formatTemperature(tempC);
           }
           color: contentColor
           pointSize: root.barFontSize
@@ -206,18 +205,18 @@ function buildHiLowTemps() {
     var mode = root.temperatureMode;
 
     if (mode === "fahrenheit") {
-        max = LocationService.celsiusToFahrenheit(max)
-        min = LocationService.celsiusToFahrenheit(min)
-        rows.push([("High"), `${Math.round(max)}${root.showTempUnit ? "°F" : ""}`]);
-        rows.push([("Low"), `${Math.round(min)}${root.showTempUnit ? "°F" : ""}`]);
+      max = LocationService.celsiusToFahrenheit(max);
+      min = LocationService.celsiusToFahrenheit(min);
+      rows.push([("High"), `${Math.round(max)}${root.showTempUnit ? "°F" : ""}`]);
+      rows.push([("Low"), `${Math.round(min)}${root.showTempUnit ? "°F" : ""}`]);
     } else if (mode === "both") {
-        var maxF = LocationService.celsiusToFahrenheit(max)
-        var minF = LocationService.celsiusToFahrenheit(min)
-        rows.push([("High"), `${Math.round(max)}°C / ${Math.round(maxF)}°F`]);
-        rows.push([("Low"), `${Math.round(min)}°C / ${Math.round(minF)}°F`]);
+      var maxF = LocationService.celsiusToFahrenheit(max);
+      var minF = LocationService.celsiusToFahrenheit(min);
+      rows.push([("High"), `${Math.round(max)}°C / ${Math.round(maxF)}°F`]);
+      rows.push([("Low"), `${Math.round(min)}°C / ${Math.round(minF)}°F`]);
     } else {
-        rows.push([("High"), `${Math.round(max)}${root.showTempUnit ? "°C" : ""}`]);
-        rows.push([("Low"), `${Math.round(min)}${root.showTempUnit ? "°C" : ""}`]);
+      rows.push([("High"), `${Math.round(max)}${root.showTempUnit ? "°C" : ""}`]);
+      rows.push([("Low"), `${Math.round(min)}${root.showTempUnit ? "°C" : ""}`]);
     }
 
     return rows;

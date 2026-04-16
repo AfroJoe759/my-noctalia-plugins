@@ -16,12 +16,62 @@ NBox {
   property var cfg: pluginApi?.pluginSettings || ({})
   property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
   readonly property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit ?? true
-  readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? "both"
+  readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? (Settings.data.location.useFahrenheit ? "fahrenheit" : "celsius")
 
   property int forecastDays: 7
   property bool showLocation: true
   property bool showEffects: Settings.data.location.weatherShowEffects
   readonly property bool weatherReady: Settings.data.location.weatherEnabled && (LocationService.data.weather !== null)
+
+  function formatTemperature(tempC) {
+    if (root.temperatureMode === "fahrenheit") {
+      var tempF = LocationService.celsiusToFahrenheit(tempC);
+      return `${Math.round(tempF)}${root.showTempUnit ? "°F" : ""}`;
+    }
+    if (root.temperatureMode === "both") {
+      var tempF = LocationService.celsiusToFahrenheit(tempC);
+      return `${Math.round(tempC)}${root.showTempUnit ? "°C" : ""} / ${Math.round(tempF)}${root.showTempUnit ? "°F" : ""}`;
+    }
+    return `${Math.round(tempC)}${root.showTempUnit ? "°C" : ""}`;
+  }
+
+  function formatForecastHigh(max) {
+    if (root.temperatureMode === "fahrenheit") {
+      max = LocationService.celsiusToFahrenheit(max);
+      return `${Math.round(max)}${root.showTempUnit ? "°F" : ""}`;
+    }
+    if (root.temperatureMode === "both") {
+      var maxF = LocationService.celsiusToFahrenheit(max);
+      return `${Math.round(max)}${root.showTempUnit ? "°C" : ""} / ${Math.round(maxF)}${root.showTempUnit ? "°F" : ""}`;
+    }
+    return `${Math.round(max)}${root.showTempUnit ? "°C" : ""}`;
+  }
+
+  function formatForecastLow(min) {
+    if (root.temperatureMode === "fahrenheit") {
+      min = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(min)}${root.showTempUnit ? "°F" : ""}`;
+    }
+    if (root.temperatureMode === "both") {
+      var minF = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(min)}${root.showTempUnit ? "°C" : ""} / ${Math.round(minF)}${root.showTempUnit ? "°F" : ""}`;
+    }
+    return `${Math.round(min)}${root.showTempUnit ? "°C" : ""}`;
+  }
+
+  function formatForecastTemps(max, min) {
+    if (root.temperatureMode === "fahrenheit") {
+      max = LocationService.celsiusToFahrenheit(max);
+      min = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(max)}°F / ${Math.round(min)}°F`;
+    }
+    if (root.temperatureMode === "both") {
+      var maxF = LocationService.celsiusToFahrenheit(max);
+      var minF = LocationService.celsiusToFahrenheit(min);
+      return `${Math.round(max)}°C / ${Math.round(min)}°C / ${Math.round(maxF)}°F / ${Math.round(minF)}°F`;
+    }
+    return `${Math.round(max)}°C / ${Math.round(min)}°C`;
+  }
 
   // Test mode: set to "clear_day", "clear_night", "rain", "snow", "cloud" or "fog"
   property string testEffects: ""
@@ -35,42 +85,6 @@ NBox {
   readonly property bool isFoggy: testEffects === "fog" || (testEffects === "" && (currentWeatherCode >= 40 && currentWeatherCode <= 49))
   readonly property bool isClearDay: testEffects === "clear_day" || (testEffects === "" && (currentWeatherCode === 0 && isDayTime))
   readonly property bool isClearNight: testEffects === "clear_night" || (testEffects === "" && (currentWeatherCode === 0 && !isDayTime))
-
-  function formatTemperature(tempC) {
-    if (temperatureMode === "fahrenheit") {
-      var tempF = LocationService.celsiusToFahrenheit(tempC);
-      return `${Math.round(tempF)}${showTempUnit ? "°F" : ""}`;
-    }
-    if (temperatureMode === "both") {
-      var tempF = LocationService.celsiusToFahrenheit(tempC);
-      return `${Math.round(tempC)}°C / ${Math.round(tempF)}°F`;
-    }
-    return `${Math.round(tempC)}${showTempUnit ? "°C" : ""}`;
-  }
-
-  function formatForecastHigh(max) {
-    if (temperatureMode === "fahrenheit") {
-      max = LocationService.celsiusToFahrenheit(max);
-      return `${Math.round(max)}${showTempUnit ? "°F" : ""}`;
-    }
-    if (temperatureMode === "both") {
-      var maxF = LocationService.celsiusToFahrenheit(max);
-      return `${Math.round(max)}${showTempUnit ? "°C" : ""} / ${Math.round(maxF)}${showTempUnit ? "°F" : ""}`;
-    }
-    return `${Math.round(max)}${showTempUnit ? "°C" : ""}`;
-  }
-
-  function formatForecastLow(min) {
-    if (temperatureMode === "fahrenheit") {
-      min = LocationService.celsiusToFahrenheit(min);
-      return `${Math.round(min)}${showTempUnit ? "°F" : ""}`;
-    }
-    if (temperatureMode === "both") {
-      var minF = LocationService.celsiusToFahrenheit(min);
-      return `${Math.round(min)}${showTempUnit ? "°C" : ""} / ${Math.round(minF)}${showTempUnit ? "°F" : ""}`;
-    }
-    return `${Math.round(min)}${showTempUnit ? "°C" : ""}`;
-  }
 
   visible: Settings.data.location.weatherEnabled
   implicitHeight: Math.max(100 * Style.uiScaleRatio, content.implicitHeight + (Style.marginXL * 2))
