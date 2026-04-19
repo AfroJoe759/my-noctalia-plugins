@@ -25,6 +25,7 @@
       "showTempUnit": true,
       "showConditionIcon": true,
       "temperatureMode": "both",
+      "temperaturePriority": "celsius",
       "tooltipOption": "everything",
       "customColor": "none"
     }

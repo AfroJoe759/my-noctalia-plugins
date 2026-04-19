@@ -1,5 +1,9 @@
 {
   "settings": {
+    "showConditionIcon": {
+      "desc": "Include the visual weather symbol in the widget.",
+      "label": "Show condition icon"
+    },
     "showTempValue": {
       "desc": "Display the current degrees alongside the condition.",
       "label": "Show temperature value"
@@ -8,13 +12,21 @@
       "desc": "Show °C or °F indicating the temperature unit when using a horizontal bar.",
       "label": "Show temperature unit when horizontal"
     },
-    "showConditionIcon": {
-      "desc": "Include the visual weather symbol in the widget.",
-      "label": "Show condition icon"
-    },
     "tooltipOption": {
       "desc": "Choose what you would like the tooltip to display.",
       "label": "Tooltip options"
+    },
+    "temperatureMode": {
+      "desc": "Choose whether to show Celsius, Fahrenheit, or both.",
+      "label": "Temperature Mode"
+    },
+    "temperaturePriority": {
+      "desc": "Choose the primary temperature order when both units are shown.",
+      "label": "Primary temperature order"
+    },
+    "priority": {
+      "fahrenheit": "Fahrenheit (F/C)",
+      "celsius": "Celsius (C/F)"
     },
     "customColor": {
       "desc": "Choose what color you would like the icon and text to be.",
@@ -24,7 +36,10 @@
       "disable": "Disable the Tooltip",
       "highlow": "High/Low temps",
       "sunrise": "Sunrise/set times",
-      "everything": "Show all"
+      "everything": "Show all",
+      "celsius": "Celsius",
+      "fahrenheit": "Fahrenheit",
+      "both": "Both"
     }
   },
   "tooltips": {

@@ -16,6 +16,7 @@ ColumnLayout {
   property bool showConditionIcon: cfg.showConditionIcon ?? defaults.showConditionIcon
   property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit
   property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode
+  property string temperaturePriority: cfg.temperaturePriority ?? defaults.temperaturePriority ?? "celsius"
   property string tooltipOption: cfg.tooltipOption ?? defaults.tooltipOption
   property string customColor: cfg.customColor ?? defaults.customColor
   spacing: Style.marginL
@@ -24,9 +25,17 @@ ColumnLayout {
     Logger.i("WeatherIndicator", "Settings UI loaded");
   }
 
+  function tr(key, fallback) {
+    var text = pluginApi?.tr(key);
+    if (text && text.indexOf("!!") === -1) {
+      return text;
+    }
+    return fallback;
+  }
+
   NColorChoice {
-    label: pluginApi?.tr("settings.customColor.label") || "customColor"
-    description: pluginApi?.tr("settings.customColor.desc") || "Choose what color you would like the icon and text to be."
+    label: tr("settings.customColor.label", "Custom color")
+    description: tr("settings.customColor.desc", "Choose what color you would like the icon and text to be.")
     currentKey: root.customColor
     onSelected: key => {
                   root.customColor = key;
@@ -35,8 +44,8 @@ ColumnLayout {
 
   NToggle {
     id: toggleIcon
-    label: pluginApi?.tr("settings.showConditionIcon.label") || "showConditionIcon"
-    description: pluginApi?.tr("settings.showConditionIcon.desc") || "Show the condition icon"
+    label: tr("settings.showConditionIcon.label", "Show condition icon")
+    description: tr("settings.showConditionIcon.desc", "Include the visual weather symbol in the widget.")
     checked: root.showConditionIcon
     onToggled: checked => {
       root.showConditionIcon = checked;
@@ -47,8 +56,8 @@ ColumnLayout {
 
   NToggle {
     id: toggleTempText
-    label: pluginApi?.tr("settings.showTempValue.label") || "showTempValue"
-    description: pluginApi?.tr("settings.showTempValue.desc") || "Show the temperature"
+    label: tr("settings.showTempValue.label", "Show temperature value")
+    description: tr("settings.showTempValue.desc", "Display the current degrees alongside the condition.")
     checked: root.showTempValue
     onToggled: checked => {
       root.showTempValue = checked;
@@ -59,8 +68,8 @@ ColumnLayout {
 
   NToggle {
     id: toggleTempLetter
-    label: pluginApi?.tr("settings.showTempUnit.label") || "showTempUnit"
-    description: pluginApi?.tr("settings.showTempUnit.desc") || "Show temperature letter (°F or °C)"
+    label: tr("settings.showTempUnit.label", "Show temperature unit when horizontal")
+    description: tr("settings.showTempUnit.desc", "Show °C or °F indicating the temperature unit when using a horizontal bar.")
     checked: root.showTempUnit
     visible: root.showTempValue
     onToggled: checked => {
@@ -71,12 +80,12 @@ ColumnLayout {
 
   NComboBox {
     Layout.fillWidth: true
-    label: pluginApi?.tr("settings.temperatureMode.label") || "Temperature Mode"
-    description: pluginApi?.tr("settings.temperatureMode.desc") || "Choose whether to show Celsius, Fahrenheit, or both."
+    label: tr("settings.temperatureMode.label", "Temperature Mode")
+    description: tr("settings.temperatureMode.desc", "Choose whether to show Celsius, Fahrenheit, or both.")
     model: [
-      { "key": "celsius", "name": pluginApi?.tr("settings.mode.celsius") || "Celsius" },
-      { "key": "fahrenheit", "name": pluginApi?.tr("settings.mode.fahrenheit") || "Fahrenheit" },
-      { "key": "both", "name": pluginApi?.tr("settings.mode.both") || "Both" }
+      { "key": "celsius", "name": tr("settings.mode.celsius", "Celsius") },
+      { "key": "fahrenheit", "name": tr("settings.mode.fahrenheit", "Fahrenheit") },
+      { "key": "both", "name": tr("settings.mode.both", "Both") }
     ]
     currentKey: root.temperatureMode
     onSelected: function (key) {
@@ -87,24 +96,40 @@ ColumnLayout {
 
   NComboBox {
     Layout.fillWidth: true
-    label: pluginApi?.tr("settings.tooltipOption.label") || "Tooltip options"
-    description: pluginApi?.tr("settings.tooltipOption.desc") || "Choose what you would like the tooltip to display."
+    visible: root.temperatureMode === "both"
+    label: tr("settings.temperaturePriority.label", "Primary temperature order")
+    description: tr("settings.temperaturePriority.desc", "Choose the primary unit order when both temperatures are shown.")
+    model: [
+      { "key": "fahrenheit", "name": tr("settings.priority.fahrenheit", "Fahrenheit (F/C)") },
+      { "key": "celsius", "name": tr("settings.priority.celsius", "Celsius (C/F)") }
+    ]
+    currentKey: root.temperaturePriority
+    onSelected: function (key) {
+      root.temperaturePriority = key;
+    }
+    defaultValue: "celsius"
+  }
+
+  NComboBox {
+    Layout.fillWidth: true
+    label: tr("settings.tooltipOption.label", "Tooltip options")
+    description: tr("settings.tooltipOption.desc", "Choose what you would like the tooltip to display.")
     model: [
       {
         "key": "disable",
-        "name": pluginApi?.tr("settings.mode.disable") || "Disable the Tooltip"
+        "name": tr("settings.mode.disable", "Disable the Tooltip")
       },
       {
         "key": "highlow",
-        "name": pluginApi?.tr("settings.mode.highlow")
+        "name": tr("settings.mode.highlow", "High/Low temps")
       },
       {
         "key": "sunrise",
-        "name": pluginApi?.tr("settings.mode.sunrise") || "Sunrise and Sunset times"
+        "name": tr("settings.mode.sunrise", "Sunrise/set times")
       },
       {
         "key": "everything",
-        "name": pluginApi?.tr("settings.mode.everything") || "Show all weather information"
+        "name": tr("settings.mode.everything", "Show all")
       }
     ]
     currentKey: root.tooltipOption
@@ -124,6 +149,7 @@ ColumnLayout {
     pluginApi.pluginSettings.showConditionIcon = root.showConditionIcon;
     pluginApi.pluginSettings.showTempUnit = root.showTempUnit;
     pluginApi.pluginSettings.temperatureMode = root.temperatureMode;
+    pluginApi.pluginSettings.temperaturePriority = root.temperaturePriority;
     pluginApi.pluginSettings.tooltipOption = root.tooltipOption;
     pluginApi.pluginSettings.customColor = root.customColor;
     pluginApi.saveSettings();

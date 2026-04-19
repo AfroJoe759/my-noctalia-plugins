@@ -1,298 +1,266 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
-import Quickshell
 import qs.Commons
-import qs.Services.Location
 import qs.Widgets
+import "." as Local
+import "components"
 
-// Weather overview card (placeholder data)
 NBox {
-  id: root
-  //readonly property real contentPreferredWidth: 675
-  //readonly property real contentPreferredHeight: content.implicitHeight + (Style.marginL * 2)
+    id: root
 
-  property var pluginApi: null
-  property var cfg: pluginApi?.pluginSettings || ({})
-  property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
-  readonly property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit ?? true
-  readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? (Settings.data.location.useFahrenheit ? "fahrenheit" : "celsius")
+    property var pluginApi: null
+    property var cfg: pluginApi?.pluginSettings || ({})
+    property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
+    readonly property bool showTempUnit: cfg.showTempUnit ?? defaults.showTempUnit ?? true
+    readonly property string temperatureMode: cfg.temperatureMode ?? defaults.temperatureMode ?? (Settings.data.location.useFahrenheit ? "fahrenheit" : "celsius")
+    readonly property string temperaturePriority: cfg.temperaturePriority ?? defaults.temperaturePriority ?? "celsius"
 
-  property int forecastDays: 7
-  property bool showLocation: true
-  property bool showEffects: Settings.data.location.weatherShowEffects
-  readonly property bool weatherReady: Settings.data.location.weatherEnabled && (LocationService.data.weather !== null)
+    property int forecastDays: 7
+    property bool showLocation: true
+    property bool showEffects: Settings.data.location.weatherShowEffects
+    readonly property bool weatherReady: Local.WeatherUtils.isWeatherReady()
+    readonly property var temp: weatherReady ? Local.WeatherUtils.getTemp() : {c: 0, f: 0}
+    readonly property int currentWeatherCode: weatherReady ? Local.WeatherUtils.getCurrentWeatherCode() : 0
+    readonly property bool isDayTime: weatherReady ? Local.WeatherUtils.isDayTime() : true
+    readonly property bool isRaining: (currentWeatherCode >= 51 && currentWeatherCode <= 67) || (currentWeatherCode >= 80 && currentWeatherCode <= 82)
+    readonly property bool isSnowing: (currentWeatherCode >= 71 && currentWeatherCode <= 77) || (currentWeatherCode >= 85 && currentWeatherCode <= 86)
+    readonly property bool isCloudy: currentWeatherCode === 3
+    readonly property bool isFoggy: currentWeatherCode >= 40 && currentWeatherCode <= 49
+    readonly property bool isClearDay: currentWeatherCode === 0 && isDayTime
+    readonly property bool isClearNight: currentWeatherCode === 0 && !isDayTime
+    readonly property var sunTimes: weatherReady ? Local.WeatherUtils.getSunTimes(0) : ({ sunrise: "--:--", sunset: "--:--" })
+    readonly property int feelsLikeValue: weatherReady ? Math.round(Local.WeatherUtils.getFeelsLikeValue()) : 0
+    readonly property var windKmh: weatherReady ? Local.WeatherUtils.getCurrentWindKmh() : null
+    readonly property var humidityPercent: weatherReady ? Local.WeatherUtils.getCurrentHumidityPercent() : null
+    readonly property string locationRegion: weatherReady ? Local.WeatherUtils.getLocationRegion() : ""
 
-  function formatTemperature(tempC) {
-    if (root.temperatureMode === "fahrenheit") {
-      var tempF = LocationService.celsiusToFahrenheit(tempC);
-      return `${Math.round(tempF)}${root.showTempUnit ? "°F" : ""}`;
-    }
-    if (root.temperatureMode === "both") {
-      var tempF = LocationService.celsiusToFahrenheit(tempC);
-      return `${Math.round(tempC)}${root.showTempUnit ? "°C" : ""} / ${Math.round(tempF)}${root.showTempUnit ? "°F" : ""}`;
-    }
-    return `${Math.round(tempC)}${root.showTempUnit ? "°C" : ""}`;
-  }
+    color: Local.Theme.bg
+    radius: 22
+    border.color: Local.Theme.borderSoft
+    border.width: 1
 
-  function formatForecastHigh(max) {
-    if (root.temperatureMode === "fahrenheit") {
-      max = LocationService.celsiusToFahrenheit(max);
-      return `${Math.round(max)}${root.showTempUnit ? "°F" : ""}`;
-    }
-    if (root.temperatureMode === "both") {
-      var maxF = LocationService.celsiusToFahrenheit(max);
-      return `${Math.round(max)}${root.showTempUnit ? "°C" : ""} / ${Math.round(maxF)}${root.showTempUnit ? "°F" : ""}`;
-    }
-    return `${Math.round(max)}${root.showTempUnit ? "°C" : ""}`;
-  }
+    visible: Settings.data.location.weatherEnabled
+    implicitHeight: Math.max(100 * Style.uiScaleRatio, content.implicitHeight + (Style.marginXL * 2))
 
-  function formatForecastLow(min) {
-    if (root.temperatureMode === "fahrenheit") {
-      min = LocationService.celsiusToFahrenheit(min);
-      return `${Math.round(min)}${root.showTempUnit ? "°F" : ""}`;
-    }
-    if (root.temperatureMode === "both") {
-      var minF = LocationService.celsiusToFahrenheit(min);
-      return `${Math.round(min)}${root.showTempUnit ? "°C" : ""} / ${Math.round(minF)}${root.showTempUnit ? "°F" : ""}`;
-    }
-    return `${Math.round(min)}${root.showTempUnit ? "°C" : ""}`;
-  }
-
-  function formatForecastTemps(max, min) {
-    if (root.temperatureMode === "fahrenheit") {
-      max = LocationService.celsiusToFahrenheit(max);
-      min = LocationService.celsiusToFahrenheit(min);
-      return `${Math.round(max)}°F / ${Math.round(min)}°F`;
-    }
-    if (root.temperatureMode === "both") {
-      var maxF = LocationService.celsiusToFahrenheit(max);
-      var minF = LocationService.celsiusToFahrenheit(min);
-      return `${Math.round(max)}°C / ${Math.round(min)}°C / ${Math.round(maxF)}°F / ${Math.round(minF)}°F`;
-    }
-    return `${Math.round(max)}°C / ${Math.round(min)}°C`;
-  }
-
-  // Test mode: set to "clear_day", "clear_night", "rain", "snow", "cloud" or "fog"
-  property string testEffects: ""
-
-  // Weather condition detection
-  readonly property int currentWeatherCode: weatherReady ? LocationService.data.weather.current_weather.weathercode : 0
-  readonly property bool isDayTime: weatherReady ? LocationService.data.weather.current_weather.is_day : true
-  readonly property bool isRaining: testEffects === "rain" || (testEffects === "" && ((currentWeatherCode >= 51 && currentWeatherCode <= 67) || (currentWeatherCode >= 80 && currentWeatherCode <= 82)))
-  readonly property bool isSnowing: testEffects === "snow" || (testEffects === "" && ((currentWeatherCode >= 71 && currentWeatherCode <= 77) || (currentWeatherCode >= 85 && currentWeatherCode <= 86)))
-  readonly property bool isCloudy: testEffects === "cloud" || (testEffects === "" && (currentWeatherCode === 3))
-  readonly property bool isFoggy: testEffects === "fog" || (testEffects === "" && (currentWeatherCode >= 40 && currentWeatherCode <= 49))
-  readonly property bool isClearDay: testEffects === "clear_day" || (testEffects === "" && (currentWeatherCode === 0 && isDayTime))
-  readonly property bool isClearNight: testEffects === "clear_night" || (testEffects === "" && (currentWeatherCode === 0 && !isDayTime))
-
-  visible: Settings.data.location.weatherEnabled
-  implicitHeight: Math.max(100 * Style.uiScaleRatio, content.implicitHeight + (Style.marginXL * 2))
-
-  // Weather effect layer (rain/snow)
-  Loader {
-    id: weatherEffectLoader
-    anchors.fill: parent
-    active: root.showEffects && (root.isRaining || root.isSnowing || root.isCloudy || root.isFoggy || root.isClearDay || root.isClearNight)
-
-    sourceComponent: Item {
-      anchors.fill: parent
-
-      // Animated time for shaders
-      property real shaderTime: 0
-      NumberAnimation on shaderTime {
-        loops: Animation.Infinite
-        from: 0
-        to: 1000
-        duration: 100000
-      }
-
-      ShaderEffect {
-        id: weatherEffect
+    Item {
+        id: contentLayer
         anchors.fill: parent
-        // Rain matches content margins, everything else fills the box
-        anchors.margins: root.isRaining ? Style.marginXL : root.border.width
-
-        property var source: ShaderEffectSource {
-          sourceItem: content
-          hideSource: root.isRaining // Only hide for rain (distortion), show for snow
-        }
-
-        property real time: parent.shaderTime
-        property real itemWidth: weatherEffect.width
-        property real itemHeight: weatherEffect.height
-        property color bgColor: root.color
-        property real cornerRadius: root.isRaining ? 0 : (root.radius - root.border.width)
-        property real alternative: root.isFoggy
-
-        fragmentShader: {
-          let shaderName;
-          if (root.isSnowing)
-            shaderName = "weather_snow";
-          else if (root.isRaining)
-            shaderName = "weather_rain";
-          else if (root.isCloudy || root.isFoggy)
-            shaderName = "weather_cloud";
-          else if (root.isClearDay)
-            shaderName = "weather_sun";
-          else if (root.isClearNight)
-            shaderName = "weather_stars";
-          else
-            shaderName = "";
-
-          return Qt.resolvedUrl(Quickshell.shellDir + "/Shaders/qsb/" + shaderName + ".frag.qsb");
-        }
-      }
-    }
-  }
-
-  ColumnLayout {
-    id: content
-    anchors.fill: parent
-    anchors.margins: Style.marginXL
-    spacing: Style.marginM
-    clip: true
-
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: Style.marginS
-
-      Item {
-        Layout.preferredWidth: Style.marginXXS
-      }
-
-      RowLayout {
-        spacing: Style.marginL
-        Layout.fillWidth: true
-
-        NIcon {
-          Layout.alignment: Qt.AlignVCenter
-          icon: weatherReady ? LocationService.weatherSymbolFromCode(LocationService.data.weather.current_weather.weathercode, LocationService.data.weather.current_weather.is_day) : "weather-cloud-off"
-          pointSize: Style.fontSizeXXXL * 1.75
-          color: Color.mPrimary
-        }
 
         ColumnLayout {
-          spacing: Style.marginXXS
-          NText {
-            text: {
-              // Ensure the name is not too long if one had to specify the country
-              const chunks = Settings.data.location.name.split(",");
-              return chunks[0];
-            }
-            pointSize: Style.fontSizeL
-            font.weight: Style.fontWeightBold
-            visible: showLocation && !Settings.data.location.hideWeatherCityName
-          }
+            id: content
+            anchors.fill: parent
+            anchors.margins: Style.marginXL
+            spacing: Style.marginL
+            clip: true
 
-          RowLayout {
-            NText {
-              visible: weatherReady
-              text: {
-                if (!weatherReady) {
-                  return "";
+            WeatherHeader {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                iconName: weatherReady ? Local.WeatherUtils.getCurrentIcon() : "weather-cloud-off"
+                temperatureText: weatherReady ? root.primaryCurrentTemperature() : "..."
+                secondaryTemperatureText: weatherReady ? root.secondaryCurrentTemperature() : ""
+                locationText: weatherReady ? Local.WeatherUtils.getLocationName() : ""
+                subtitleText: weatherReady ? Local.WeatherUtils.getCurrentDescription() : ""
+                showLocation: root.showLocation
+                windText: weatherReady ? root.windText() : "--"
+                humidityText: weatherReady ? root.humidityText() : "--"
+            }
+
+            NDivider {
+                visible: weatherReady
+                Layout.fillWidth: true
+                color: Local.Theme.borderSoft
+            }
+
+            ForecastRow {
+                visible: weatherReady
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                forecastDays: root.forecastDays
+                temperatureMode: root.temperatureMode
+                temperaturePriority: root.temperaturePriority
+                showTempUnit: root.showTempUnit
+            }
+
+            Rectangle {
+                visible: weatherReady
+                Layout.fillWidth: true
+                implicitHeight: footerRow.implicitHeight + Style.marginS * 2
+                radius: 20
+                color: Local.Theme.bgElevated
+                border.color: Qt.rgba(0.33, 0.56, 1.0, 0.14)
+                border.width: 1
+
+                RowLayout {
+                    id: footerRow
+                    anchors.fill: parent
+                    anchors.margins: Style.marginS
+                    spacing: Style.marginL
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        radius: 16
+                        color: Local.Theme.cardPink
+                        border.color: "transparent"
+                        implicitHeight: sunriseRow.implicitHeight + Style.marginS * 2
+
+                        RowLayout {
+                            id: sunriseRow
+                            anchors.fill: parent
+                            anchors.margins: Style.marginS
+                            spacing: Style.marginS
+
+                            NIcon {
+                                icon: "weather-sunset-up"
+                                color: Local.Theme.accentAlt
+                                pointSize: Style.fontSizeXL
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+
+                                NText {
+                                    text: sunTimes.sunrise
+                                    color: Local.Theme.text
+                                    font.weight: Font.Bold
+                                }
+
+                                NText {
+                                    text: "Sunrise"
+                                    color: Local.Theme.textMuted
+                                    pointSize: Style.fontSizeXS
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        radius: 16
+                        color: Local.Theme.cardAmber
+                        border.color: "transparent"
+                        implicitHeight: sunsetRow.implicitHeight + Style.marginS * 2
+
+                        RowLayout {
+                            id: sunsetRow
+                            anchors.fill: parent
+                            anchors.margins: Style.marginS
+                            spacing: Style.marginS
+
+                            NIcon {
+                                icon: "weather-sunset-down"
+                                color: Local.Theme.accentWarm
+                                pointSize: Style.fontSizeXL
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+
+                                NText {
+                                    text: sunTimes.sunset
+                                    color: Local.Theme.text
+                                    font.weight: Font.Bold
+                                }
+
+                                NText {
+                                    text: "Sunset"
+                                    color: Local.Theme.textMuted
+                                    pointSize: Style.fontSizeXS
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        radius: 16
+                        color: Local.Theme.cardBlue
+                        border.color: "transparent"
+                        implicitHeight: locationRow.implicitHeight + Style.marginS * 2
+
+                        RowLayout {
+                            id: locationRow
+                            anchors.fill: parent
+                            anchors.margins: Style.marginS
+                            spacing: Style.marginS
+
+                            NIcon {
+                                icon: "map-marker"
+                                color: Local.Theme.accent
+                                pointSize: Style.fontSizeXL
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+
+                                NText {
+                                    text: Local.WeatherUtils.getLocationName()
+                                    color: Local.Theme.text
+                                    font.weight: Font.Bold
+                                }
+
+                                NText {
+                                    text: locationRegion.length > 0 ? locationRegion : "Current location"
+                                    color: Local.Theme.textMuted
+                                    pointSize: Style.fontSizeXS
+                                }
+                            }
+                        }
+                    }
                 }
-                var tempC = LocationService.data.weather.current_weather.temperature;
-                return root.formatTemperature(tempC);
-              }
-              pointSize: showLocation ? Style.fontSizeXL : Style.fontSizeXL * 1.6
-              font.weight: Style.fontWeightBold
             }
 
-            NText {
-              text: weatherReady ? `(${LocationService.data.weather.timezone_abbreviation})` : ""
-              pointSize: Style.fontSizeXS
-              color: Color.mOnSurfaceVariant
-              visible: LocationService.data.weather && showLocation && !Settings.data.location.hideWeatherTimezone
+            Loader {
+                active: !weatherReady
+                Layout.alignment: Qt.AlignCenter
+                sourceComponent: NBusyIndicator {}
             }
-          }
         }
-      }
     }
 
-    NDivider {
-      visible: weatherReady
-      Layout.fillWidth: true
+    WeatherEffects {
+        id: effectLayer
+        anchors.fill: parent
+        sourceLayer: content
+        bgColor: root.color
+        cornerRadius: root.isRaining ? 0 : (root.radius - root.border.width)
+        showEffects: root.showEffects
+        isRaining: root.isRaining
+        isSnowing: root.isSnowing
+        isCloudy: root.isCloudy
+        isFoggy: root.isFoggy
+        isClearDay: root.isClearDay
+        isClearNight: root.isClearNight
     }
 
-    RowLayout {
-      visible: weatherReady
-      Layout.fillWidth: true
-      Layout.alignment: Qt.AlignVCenter
-      spacing: Style.marginM
-
-      Repeater {
-        model: weatherReady ? Math.min(root.forecastDays, LocationService.data.weather.daily.time.length) : 0
-        delegate: ColumnLayout {
-          Layout.fillWidth: true
-          spacing: Style.marginXS
-          Item {
-            Layout.fillWidth: true
-          }
-          NText {
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-            text: {
-              var weatherDate = new Date(LocationService.data.weather.daily.time[index].replace(/-/g, "/"));
-              return I18n.locale.toString(weatherDate, "ddd");
-            }
-            color: Color.mOnSurface
-          }
-          NIcon {
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-            icon: LocationService.weatherSymbolFromCode(LocationService.data.weather.daily.weathercode[index])
-            pointSize: Style.fontSizeXXL * 1.6
-            color: Color.mPrimary
-          }
-          NText {
-            Layout.alignment: Qt.AlignHCenter
-            text: {
-              var max = LocationService.data.weather.daily.temperature_2m_max[index];
-              return root.formatForecastHigh(max);
-            }
-            pointSize: Style.fontSizeXS
-            color: Color.mOnSurfaceVariant
-          }
-          NText {
-            Layout.alignment: Qt.AlignHCenter
-            text: {
-              var min = LocationService.data.weather.daily.temperature_2m_min[index];
-              return root.formatForecastLow(min);
-            }
-            pointSize: Style.fontSizeXS
-            color: Color.mOnSurfaceVariant
-          }
-        NText {
-            Layout.alignment: Qt.AlignHCenter
-            text: {
-                var riseDate = new Date(LocationService.data.weather.daily.sunrise[index])
-
-                const timeFormat = Settings.data.location.use12hourFormat ? "hh:mm AP" : "HH:mm";
-                const rise = I18n.locale.toString(riseDate, timeFormat);
-                return `${rise}`;
-            }
-            pointSize: Style.fontSizeXS
-            color: Color.mOnSurfaceVariant
-        }
-        NText {
-            Layout.alignment: Qt.AlignHCenter
-            text: {
-                var setDate = new Date(LocationService.data.weather.daily.sunset[index])
-
-                const timeFormat = Settings.data.location.use12hourFormat ? "hh:mm AP" : "HH:mm";
-                const set = I18n.locale.toString(setDate, timeFormat);
-                return `${set}`;
-            }
-            pointSize: Style.fontSizeXS
-            color: Color.mOnSurfaceVariant
-        }
-      }
+    function formatCurrentTemperature() {
+        return Local.WeatherUtils.formatCurrentTemperature(
+            Local.WeatherUtils.getCurrentTemperatureValue(),
+            root.temperatureMode,
+            root.showTempUnit,
+            root.temperaturePriority
+        );
     }
 
-    Loader {
-      active: !weatherReady
-      Layout.alignment: Qt.AlignCenter
-      sourceComponent: NBusyIndicator {}
+    function primaryCurrentTemperature() {
+        return Local.WeatherUtils.formatCurrentTemperature(
+            Local.WeatherUtils.getCurrentTemperatureValue(),
+            root.temperatureMode,
+            root.showTempUnit,
+            root.temperaturePriority
+        );
     }
-  }
-}
+
+    function secondaryCurrentTemperature() {
+        const feelsLike = Local.WeatherUtils.getFeelsLikeValue();
+        return "Feels like " + Local.WeatherUtils.formatSecondaryTemperature(feelsLike, root.temperatureMode, root.showTempUnit, root.temperaturePriority);
+    }
+
+    function windText() {
+        return windKmh === null ? "--" : (windKmh + " km/h");
+    }
+
+    function humidityText() {
+        return humidityPercent === null ? "--" : (humidityPercent + "%");
+    }
 }

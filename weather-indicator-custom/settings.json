@@ -1,0 +1,9 @@
+{
+  "showTempValue": true,
+  "showConditionIcon": true,
+  "showTempUnit": true,
+  "temperatureMode": "both",
+  "temperaturePriority": "fahrenheit",
+  "tooltipOption": "everything",
+  "customColor": "none"
+}
